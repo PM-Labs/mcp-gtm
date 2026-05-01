@@ -63,6 +63,7 @@ func Middleware(store TokenStore, google *GoogleProvider, logger *slog.Logger, b
 				ctx = context.WithValue(ctx, TokenInfoKey, &TokenInfo{
 					ClientID:  "service-account",
 					CreatedAt: time.Now(),
+					ExpiresAt: time.Now().Add(24 * time.Hour * 365 * 10),
 				})
 				logger.Debug("authenticated request", "client_id", "service-account", "auth_mode", "s2s")
 				next.ServeHTTP(w, r.WithContext(ctx))
