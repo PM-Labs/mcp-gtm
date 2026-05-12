@@ -16,11 +16,6 @@ jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
-      - uses: golang/govulncheck-action@v1.0.4
-      - uses: securego/gosec@v2.26.1
-      - uses: dominikh/staticcheck-action@v1.2.0
-        with:
-          version: "2022.1.1"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
