@@ -104,7 +104,7 @@ func main() {
 	// OAuth metadata endpoints (always served, no auth required)
 	// RFC 9728: Protected Resource Metadata - tells clients where to find the authorization server
 	mux.HandleFunc("GET /.well-known/oauth-protected-resource",
-		auth.ProtectedResourceMetadataHandler(cfg.BaseURL, cfg.BaseURL, urlResolver))
+		auth.ProtectedResourceMetadataHandler(cfg.BaseURL, cfg.BaseURL+"/mcp", urlResolver))
 
 	// RFC 8414: Authorization Server Metadata - tells clients about OAuth endpoints
 	mux.HandleFunc("GET /.well-known/oauth-authorization-server", auth.MetadataHandler(cfg.BaseURL, urlResolver))
