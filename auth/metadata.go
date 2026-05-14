@@ -24,8 +24,8 @@ func NewOAuthMetadata(baseURL string) *OAuthMetadata {
 	return &OAuthMetadata{
 		Issuer:                baseURL,
 		AuthorizationEndpoint: baseURL + "/authorize",
-		TokenEndpoint:         baseURL + "/token",
-		RegistrationEndpoint:  baseURL + "/register",
+		TokenEndpoint:         baseURL + "/oauth/token",
+		
 		ScopesSupported: GoogleScopes,
 		ResponseTypesSupported:            []string{"code"},
 		GrantTypesSupported:               []string{"authorization_code", "refresh_token"},
