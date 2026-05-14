@@ -150,7 +150,7 @@ func main() {
 		// OAuth endpoints with rate limiting and body size limits
 		mux.HandleFunc("GET /authorize", oauthLimiter.MiddlewareFunc(authServer.AuthorizeHandler))
 		mux.HandleFunc("GET /oauth/callback", oauthLimiter.MiddlewareFunc(authServer.CallbackHandler))
-		mux.HandleFunc("POST /token", oauthLimiter.MiddlewareFunc(middleware.MaxBytesMiddleware(1<<20, authServer.TokenHandler)))
+		mux.HandleFunc("POST /oauth/token", oauthLimiter.MiddlewareFunc(middleware.MaxBytesMiddleware(1<<20, authServer.TokenHandler)))
 		mux.HandleFunc("POST /register", registerLimiter.MiddlewareFunc(middleware.MaxBytesMiddleware(1<<20, authServer.RegistrationHandler)))
 
 		// MCP endpoint with REQUIRED auth middleware and body size limit
@@ -214,7 +214,7 @@ func main() {
 		}))
 
 		// /token: PKCE exchange; returns SERVICE_ACCOUNT_API_KEY as the bearer token
-		mux.HandleFunc("POST /token", oauthLimiter.MiddlewareFunc(middleware.MaxBytesMiddleware(1<<20, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("POST /oauth/token", oauthLimiter.MiddlewareFunc(middleware.MaxBytesMiddleware(1<<20, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if parseErr := r.ParseForm(); parseErr != nil {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusBadRequest)
@@ -290,7 +290,7 @@ func main() {
 		}
 		mux.HandleFunc("GET /authorize", oauthLimiter.MiddlewareFunc(oauthNotConfiguredHandler))
 		mux.HandleFunc("GET /oauth/callback", oauthLimiter.MiddlewareFunc(oauthNotConfiguredHandler))
-		mux.HandleFunc("POST /token", oauthLimiter.MiddlewareFunc(oauthNotConfiguredHandler))
+		mux.HandleFunc("POST /oauth/token", oauthLimiter.MiddlewareFunc(oauthNotConfiguredHandler))
 		mux.HandleFunc("POST /register", registerLimiter.MiddlewareFunc(oauthNotConfiguredHandler))
 
 		// MCP endpoint without auth (still apply body size limit)
