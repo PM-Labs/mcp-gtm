@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -161,6 +165,116 @@ func main() {
 			"register_endpoint", cfg.BaseURL+"/register",
 			"protected_resource_metadata", cfg.BaseURL+"/.well-known/oauth-protected-resource",
 			"authorization_server_metadata", cfg.BaseURL+"/.well-known/oauth-authorization-server",
+		)
+	} else if saTokenSource != nil {
+		// S2S-only PKCE mode: no Google OAuth app required.
+		// claude.ai performs PKCE; we issue cfg.ServiceAccountAPIKey as the access token.
+		var pkceMu sync.Mutex
+		type pkceEntry struct {
+			codeChallenge string
+			expiresAt     time.Time
+		}
+		pkceCodes := map[string]pkceEntry{}
+
+		// /authorize: accept code_challenge, redirect with a one-time code
+		mux.HandleFunc("GET /authorize", oauthLimiter.MiddlewareFunc(func(w http.ResponseWriter, r *http.Request) {
+			q := r.URL.Query()
+			codeChallenge := q.Get("code_challenge")
+			redirectURI := q.Get("redirect_uri")
+			state := q.Get("state")
+
+			if codeChallenge == "" {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]string{"error": "invalid_request", "error_description": "code_challenge required"})
+				return
+			}
+
+			h := sha256.Sum256([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))
+			code := base64.RawURLEncoding.EncodeToString(h[:])[:32]
+
+			pkceMu.Lock()
+			pkceCodes[code] = pkceEntry{codeChallenge: codeChallenge, expiresAt: time.Now().Add(5 * time.Minute)}
+			pkceMu.Unlock()
+
+			redir, parseErr := url.Parse(redirectURI)
+			if parseErr != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]string{"error": "invalid_request"})
+				return
+			}
+			qr := redir.Query()
+			qr.Set("code", code)
+			if state != "" {
+				qr.Set("state", state)
+			}
+			redir.RawQuery = qr.Encode()
+			http.Redirect(w, r, redir.String(), http.StatusFound)
+		}))
+
+		// /token: PKCE exchange; returns SERVICE_ACCOUNT_API_KEY as the bearer token
+		mux.HandleFunc("POST /token", oauthLimiter.MiddlewareFunc(middleware.MaxBytesMiddleware(1<<20, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if parseErr := r.ParseForm(); parseErr != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]string{"error": "invalid_request"})
+				return
+			}
+			code := r.FormValue("code")
+			verifier := r.FormValue("code_verifier")
+
+			pkceMu.Lock()
+			entry, ok := pkceCodes[code]
+			if ok {
+				delete(pkceCodes, code)
+			}
+			pkceMu.Unlock()
+
+			if !ok || time.Now().After(entry.expiresAt) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]string{"error": "invalid_grant"})
+				return
+			}
+
+			// Verify PKCE S256: BASE64URL(SHA256(verifier)) must equal stored code_challenge
+			h := sha256.Sum256([]byte(verifier))
+			challenge := base64.RawURLEncoding.EncodeToString(h[:])
+			if challenge != entry.codeChallenge {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]string{"error": "invalid_grant"})
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"access_token": cfg.ServiceAccountAPIKey,
+				"token_type":   "Bearer",
+				"expires_in":   2592000,
+			})
+		}))))
+
+		// /register: minimal DCR (RFC 7591); echo back a static client_id
+		mux.HandleFunc("POST /register", registerLimiter.MiddlewareFunc(middleware.MaxBytesMiddleware(1<<20, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{
+				"client_id":     "claude-pathfinder",
+				"client_secret": "",
+			})
+		}))))
+
+		// MCP endpoint: Bearer middleware validates against SERVICE_ACCOUNT_API_KEY
+		s2sStore := auth.NewMemoryTokenStore()
+		authMiddleware := auth.Middleware(s2sStore, nil, logger, cfg.BaseURL, cfg.AccessTokenTTL, urlResolver, saTokenSource, cfg.ServiceAccountAPIKey)
+		mux.Handle("/", authMiddleware(maxBytesHandler(5<<20, mcpHandler)))
+
+		logger.Info("s2s_pkce_mode_active",
+			"authorize_endpoint", cfg.BaseURL+"/authorize",
+			"token_endpoint", cfg.BaseURL+"/token",
+			"register_endpoint", cfg.BaseURL+"/register",
 		)
 	} else {
 		logger.Warn("OAuth not configured, running without authentication", "error", cfg.ValidateAuth())
