@@ -42,6 +42,11 @@ type Config struct {
 	OAuthClientID     string // OAUTH_CLIENT_ID  (e.g. "claude-pathfinder")
 	OAuthClientSecret string // OAUTH_CLIENT_SECRET
 
+	// DWD: Workspace user the service account impersonates for GTM API calls.
+	// GTM user management rejects service account emails; a real Workspace user
+	// must hold the GTM permissions and the SA impersonates them via DWD.
+	ImpersonateSubject string // IMPERSONATE_SUBJECT (e.g. "info@pathfindermarketing.com.au")
+
 	// TrustProxy enables trusting X-Forwarded-For for rate limiting.
 	// Set to true when behind a reverse proxy (e.g. Caddy).
 	TrustProxy bool
@@ -70,6 +75,7 @@ func Load() (*Config, error) {
 		TrustProxy:            getEnvBool("TRUST_PROXY", false),
 		OAuthClientID:         getEnv("OAUTH_CLIENT_ID", ""),
 		OAuthClientSecret:     getEnv("OAUTH_CLIENT_SECRET", ""),
+		ImpersonateSubject:    getEnv("IMPERSONATE_SUBJECT", ""),
 	}
 
 	// Validation is deferred to when auth is actually needed

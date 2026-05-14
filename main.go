@@ -113,7 +113,7 @@ func main() {
 	var saTokenSource oauth2.TokenSource
 	if cfg.ServiceAccountAPIKey != "" {
 		var saErr error
-		saTokenSource, saErr = auth.NewServiceAccountTokenSource(context.Background(), cfg.ServiceAccountKeyJSON)
+		saTokenSource, saErr = auth.NewServiceAccountTokenSource(context.Background(), cfg.ServiceAccountKeyJSON, cfg.ImpersonateSubject)
 		if saErr != nil {
 			logger.Error("s2s_mode_failed",
 				"error", saErr,
@@ -125,7 +125,11 @@ func main() {
 		if cfg.ServiceAccountKeyJSON != "" {
 			credSource = "key_json"
 		}
-		logger.Info("s2s_mode_enabled", "credential_source", credSource)
+		if cfg.ImpersonateSubject != "" {
+			logger.Info("s2s_mode_enabled", "credential_source", credSource, "impersonate_subject", cfg.ImpersonateSubject)
+		} else {
+			logger.Info("s2s_mode_enabled", "credential_source", credSource)
+		}
 	}
 
 	// Check if OAuth is configured
