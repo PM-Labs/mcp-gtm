@@ -38,6 +38,10 @@ type Config struct {
 	ServiceAccountAPIKey  string // SERVICE_ACCOUNT_API_KEY
 	ServiceAccountKeyJSON string // GOOGLE_SERVICE_ACCOUNT_KEY_JSON
 
+	// OAuth client credentials for client_credentials grant (claude.ai integration)
+	OAuthClientID     string // OAUTH_CLIENT_ID  (e.g. "claude-pathfinder")
+	OAuthClientSecret string // OAUTH_CLIENT_SECRET
+
 	// TrustProxy enables trusting X-Forwarded-For for rate limiting.
 	// Set to true when behind a reverse proxy (e.g. Caddy).
 	TrustProxy bool
@@ -64,6 +68,8 @@ func Load() (*Config, error) {
 		ServiceAccountAPIKey:  getEnv("SERVICE_ACCOUNT_API_KEY", ""),
 		ServiceAccountKeyJSON: getEnv("GOOGLE_SERVICE_ACCOUNT_KEY_JSON", ""),
 		TrustProxy:            getEnvBool("TRUST_PROXY", false),
+		OAuthClientID:         getEnv("OAUTH_CLIENT_ID", ""),
+		OAuthClientSecret:     getEnv("OAUTH_CLIENT_SECRET", ""),
 	}
 
 	// Validation is deferred to when auth is actually needed

@@ -28,7 +28,7 @@ func NewOAuthMetadata(baseURL string) *OAuthMetadata {
 		
 		ScopesSupported: GoogleScopes,
 		ResponseTypesSupported:            []string{"code"},
-		GrantTypesSupported:               []string{"authorization_code", "refresh_token"},
+		GrantTypesSupported:               []string{"authorization_code", "client_credentials"},
 		TokenEndpointAuthMethodsSupported: []string{"client_secret_post", "none"},
 		CodeChallengeMethodsSupported:     []string{"S256"},
 	}

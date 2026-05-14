@@ -213,7 +213,7 @@ func main() {
 			http.Redirect(w, r, redir.String(), http.StatusFound)
 		}))
 
-		// /token: PKCE exchange; returns SERVICE_ACCOUNT_API_KEY as the bearer token
+		// /token: client_credentials or PKCE authorization_code exchange; returns SERVICE_ACCOUNT_API_KEY as bearer
 		mux.HandleFunc("POST /oauth/token", oauthLimiter.MiddlewareFunc(middleware.MaxBytesMiddleware(1<<20, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if parseErr := r.ParseForm(); parseErr != nil {
 				w.Header().Set("Content-Type", "application/json")
@@ -221,6 +221,38 @@ func main() {
 				json.NewEncoder(w).Encode(map[string]string{"error": "invalid_request"})
 				return
 			}
+			grantType := r.FormValue("grant_type")
+
+			// client_credentials grant: validate client_id + client_secret, return bearer token directly
+			if grantType == "client_credentials" {
+				clientID := r.FormValue("client_id")
+				clientSecret := r.FormValue("client_secret")
+				if clientID == "" {
+					// Also accept Basic auth header
+					clientID, clientSecret, _ = r.BasicAuth()
+				}
+				if cfg.OAuthClientID == "" || cfg.OAuthClientSecret == "" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusServiceUnavailable)
+					json.NewEncoder(w).Encode(map[string]string{"error": "server_error", "error_description": "client_credentials not configured"})
+					return
+				}
+				if clientID != cfg.OAuthClientID || clientSecret != cfg.OAuthClientSecret {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(map[string]string{"error": "invalid_client"})
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"access_token": cfg.ServiceAccountAPIKey,
+					"token_type":   "Bearer",
+					"expires_in":   2592000,
+				})
+				return
+			}
+
+			// authorization_code grant: PKCE exchange
 			code := r.FormValue("code")
 			verifier := r.FormValue("code_verifier")
 
