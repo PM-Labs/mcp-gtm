@@ -17,10 +17,9 @@ type GoogleProvider struct {
 
 // GoogleScopes defines the scopes needed for GTM API access.
 var GoogleScopes = []string{
-	"https://www.googleapis.com/auth/tagmanager.delete.containers",
 	"https://www.googleapis.com/auth/tagmanager.edit.containers",
 	"https://www.googleapis.com/auth/tagmanager.manage.accounts",
-	"https://www.googleapis.com/auth/tagmanager.publish",
+	"https://www.googleapis.com/auth/tagmanager.readonly",
 }
 
 // NewGoogleProvider creates a new Google OAuth provider.
