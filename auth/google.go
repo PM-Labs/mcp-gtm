@@ -19,7 +19,6 @@ type GoogleProvider struct {
 var GoogleScopes = []string{
 	"https://www.googleapis.com/auth/tagmanager.delete.containers",
 	"https://www.googleapis.com/auth/tagmanager.edit.containers",
-	"https://www.googleapis.com/auth/tagmanager.edit.containerversions",
 	"https://www.googleapis.com/auth/tagmanager.manage.accounts",
 	"https://www.googleapis.com/auth/tagmanager.publish",
 }
