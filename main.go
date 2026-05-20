@@ -33,6 +33,19 @@ const (
 	serverVersion = "1.6.0"
 )
 
+// Token issuance tracking — persisted so the expiry-warning cron can read it.
+var (
+	tokenMetaIssuedAt int64
+	tokenMetaTTL      int64
+)
+
+func recordTokenIssuance(ttlSeconds int64) {
+	tokenMetaIssuedAt = time.Now().Unix()
+	tokenMetaTTL = ttlSeconds
+	data, _ := json.Marshal(map[string]int64{"issued_at": tokenMetaIssuedAt, "expires_in": ttlSeconds})
+	_ = os.WriteFile("/tmp/mcp-token-meta.json", data, 0600)
+}
+
 func main() {
 	// Set up structured logging to stderr (stdout is reserved for MCP in stdio mode)
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
@@ -45,6 +58,18 @@ func main() {
 	if err != nil {
 		logger.Error("failed to load configuration", "error", err)
 		os.Exit(1)
+	}
+
+	// Load persisted token issuance metadata (survives process restarts within container).
+	if data, readErr := os.ReadFile("/tmp/mcp-token-meta.json"); readErr == nil {
+		var meta struct {
+			IssuedAt  int64 `json:"issued_at"`
+			ExpiresIn int64 `json:"expires_in"`
+		}
+		if jsonErr := json.Unmarshal(data, &meta); jsonErr == nil && meta.IssuedAt > 0 {
+			tokenMetaIssuedAt = meta.IssuedAt
+			tokenMetaTTL = meta.ExpiresIn
+		}
 	}
 
 	// Adjust log level
@@ -108,6 +133,21 @@ func main() {
 
 	// RFC 8414: Authorization Server Metadata - tells clients about OAuth endpoints
 	mux.HandleFunc("GET /.well-known/oauth-authorization-server", auth.MetadataHandler(cfg.BaseURL, urlResolver))
+
+	// Token expiry metadata (unauthenticated — reveals only a timestamp)
+	mux.HandleFunc("GET /.well-known/token-expiry", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if tokenMetaIssuedAt == 0 {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{"error": "no_token_issued"})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]int64{
+			"issued_at":  tokenMetaIssuedAt,
+			"expires_in": tokenMetaTTL,
+			"expires_at": tokenMetaIssuedAt + tokenMetaTTL,
+		})
+	})
 
 	// Service account S2S mode (runs alongside OAuth when both are configured)
 	var saTokenSource oauth2.TokenSource
@@ -247,11 +287,12 @@ func main() {
 					json.NewEncoder(w).Encode(map[string]string{"error": "invalid_client"})
 					return
 				}
+				recordTokenIssuance(int64(cfg.AccessTokenTTL.Seconds()))
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"access_token": cfg.ServiceAccountAPIKey,
 					"token_type":   "Bearer",
-					"expires_in":   2592000,
+					"expires_in":   int(cfg.AccessTokenTTL.Seconds()),
 				})
 				return
 			}
@@ -284,11 +325,12 @@ func main() {
 				return
 			}
 
+			recordTokenIssuance(int64(cfg.AccessTokenTTL.Seconds()))
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"access_token": cfg.ServiceAccountAPIKey,
 				"token_type":   "Bearer",
-				"expires_in":   2592000,
+				"expires_in":   int(cfg.AccessTokenTTL.Seconds()),
 			})
 		}))))
 
