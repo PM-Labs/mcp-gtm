@@ -20,6 +20,7 @@ var GoogleScopes = []string{
 	"https://www.googleapis.com/auth/tagmanager.edit.containers",
 	"https://www.googleapis.com/auth/tagmanager.manage.accounts",
 	"https://www.googleapis.com/auth/tagmanager.readonly",
+	"https://www.googleapis.com/auth/tagmanager.publish",
 }
 
 // NewGoogleProvider creates a new Google OAuth provider.
