@@ -2,13 +2,12 @@ module gtm-mcp-server
 
 go 1.25.0
 
-
 require (
 	github.com/joho/godotenv v1.5.1
-	github.com/modelcontextprotocol/go-sdk v1.4.1
+	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/yosida95/uritemplate/v3 v3.0.2
-	golang.org/x/oauth2 v0.34.0
-	golang.org/x/time v0.14.0
+	golang.org/x/oauth2 v0.35.0
+	golang.org/x/time v0.15.0
 	google.golang.org/api v0.260.0
 )
 
@@ -20,7 +19,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/google/jsonschema-go v0.4.2 // indirect
+	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.9 // indirect
@@ -34,6 +33,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/net v0.53.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
