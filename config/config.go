@@ -62,20 +62,20 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		Port:              getEnvInt("PORT", 8080),
-		BaseURL:           getEnv("BASE_URL", "http://localhost:8080"),
+		BaseURL:           getEnv("GTM_BASE_URL", "http://localhost:8080"),
 		GoogleClientID:    getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 		GoogleRedirectURI: getEnv("GOOGLE_REDIRECT_URI", ""),
 		JWTSecret:         getEnv("JWT_SECRET", ""),
-		LogLevel:          getEnv("LOG_LEVEL", "info"),
-		AccessTokenTTL:    getEnvDuration("ACCESS_TOKEN_TTL", 8*time.Hour),
+		LogLevel:          getEnv("GTM_LOG_LEVEL", "info"),
+		AccessTokenTTL:    getEnvDuration("GTM_ACCESS_TOKEN_TTL", 8*time.Hour),
 		AllowedHosts:      getEnvList("ALLOWED_HOSTS"),
-		ServiceAccountAPIKey:  getEnv("SERVICE_ACCOUNT_API_KEY", ""),
-		ServiceAccountKeyJSON: getEnv("GOOGLE_SERVICE_ACCOUNT_KEY_JSON", ""),
-		TrustProxy:            getEnvBool("TRUST_PROXY", false),
-		OAuthClientID:         getEnv("OAUTH_CLIENT_ID", ""),
-		OAuthClientSecret:     getEnv("OAUTH_CLIENT_SECRET", ""),
-		ImpersonateSubject:    getEnv("IMPERSONATE_SUBJECT", ""),
+		ServiceAccountAPIKey:  getEnv("GTM_SERVICE_ACCOUNT_API_KEY", ""),
+		ServiceAccountKeyJSON: getEnv("GTM_GOOGLE_SERVICE_ACCOUNT_KEY_JSON", ""),
+		TrustProxy:            getEnvBool("GTM_TRUST_PROXY", false),
+		OAuthClientID:         getEnv("GTM_OAUTH_CLIENT_ID", ""),
+		OAuthClientSecret:     getEnv("GTM_OAUTH_CLIENT_SECRET", ""),
+		ImpersonateSubject:    getEnv("GTM_IMPERSONATE_SUBJECT", ""),
 	}
 
 	// Validation is deferred to when auth is actually needed
