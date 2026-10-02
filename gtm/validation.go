@@ -118,3 +118,24 @@ func ValidateTransformationInput(name, transformationType string) error {
 	}
 	return nil
 }
+
+// ValidateAddToFolderInput validates add_to_folder inputs. folderName must already be trimmed.
+func ValidateAddToFolderInput(folderName string, tagIDs, triggerIDs, variableIDs []string) error {
+	if folderName == "" {
+		return fmt.Errorf("folder name is required")
+	}
+	if len(folderName) > 256 {
+		return fmt.Errorf("folder name must be 256 characters or less")
+	}
+	if len(tagIDs)+len(triggerIDs)+len(variableIDs) == 0 {
+		return fmt.Errorf("nothing to move: give at least one tag, trigger or variable ID")
+	}
+	for _, ids := range [][]string{tagIDs, triggerIDs, variableIDs} {
+		for _, id := range ids {
+			if strings.TrimSpace(id) == "" {
+				return fmt.Errorf("entity IDs cannot be empty")
+			}
+		}
+	}
+	return nil
+}

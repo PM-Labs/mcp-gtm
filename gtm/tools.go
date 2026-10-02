@@ -42,6 +42,7 @@ func RegisterTools(server *mcp.Server) {
 	registerUpdateContainer(server)
 	registerDeleteContainer(server)
 	registerCreateWorkspace(server)
+	registerAddToFolder(server)
 
 	// Workspace status
 	registerGetWorkspaceStatus(server)

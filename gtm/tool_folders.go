@@ -72,3 +72,46 @@ func registerGetFolderEntities(server *mcp.Server) {
 		Description: "Get the tags, triggers, and variables inside a specific folder.",
 	}, handler)
 }
+
+// AddToFolderInput is the input for add_to_folder tool.
+type AddToFolderInput struct {
+	AccountID   string   `json:"accountId" jsonschema:"description:The GTM account ID"`
+	ContainerID string   `json:"containerId" jsonschema:"description:The GTM container ID"`
+	WorkspaceID string   `json:"workspaceId" jsonschema:"description:The GTM workspace ID"`
+	FolderName  string   `json:"folderName" jsonschema:"description:Folder name (exact match\\, capitals matter). Created if no folder has this name."`
+	TagIDs      []string `json:"tagIds,omitempty" jsonschema:"description:Tag IDs to move into the folder (optional)"`
+	TriggerIDs  []string `json:"triggerIds,omitempty" jsonschema:"description:Trigger IDs to move into the folder (optional)"`
+	VariableIDs []string `json:"variableIds,omitempty" jsonschema:"description:Variable IDs to move into the folder (optional)"`
+}
+
+// AddToFolderOutput is the output for add_to_folder tool.
+type AddToFolderOutput struct {
+	Success bool              `json:"success"`
+	Result  AddToFolderResult `json:"result"`
+	Message string            `json:"message"`
+}
+
+func registerAddToFolder(server *mcp.Server) {
+	handler := func(ctx context.Context, req *mcp.CallToolRequest, input AddToFolderInput) (*mcp.CallToolResult, AddToFolderOutput, error) {
+		wc, err := resolveWorkspace(ctx, input.AccountID, input.ContainerID, input.WorkspaceID)
+		if err != nil {
+			return nil, AddToFolderOutput{}, err
+		}
+
+		res, err := wc.Client.AddToFolder(ctx, wc.AccountID, wc.ContainerID, wc.WorkspaceID, input.FolderName, input.TagIDs, input.TriggerIDs, input.VariableIDs)
+		if err != nil {
+			return nil, AddToFolderOutput{}, err
+		}
+
+		msg := "Moved items into existing folder. Workspace change only; publish a version to make it live."
+		if res.FolderCreated {
+			msg = "Created the folder and moved items into it. Workspace change only; publish a version to make it live."
+		}
+		return nil, AddToFolderOutput{Success: true, Result: *res, Message: msg}, nil
+	}
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "add_to_folder",
+		Description: "Put tags, triggers and variables into a folder, creating the folder first if no folder has that exact name. Safe to repeat. An item lives in one folder, so moving it removes it from its old one.",
+	}, handler)
+}
