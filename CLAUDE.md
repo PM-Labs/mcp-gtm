@@ -21,3 +21,9 @@ Once both are in place, DWD tokens pick up the new scope automatically on the ne
 ## Tools requiring `tagmanager.publish`
 
 `create_version` (`gtm/tool_version.go`) works under `tagmanager.edit.containers` alone. `publish_version` additionally requires `tagmanager.publish` — a distinct GTM API scope, not implied by `edit.containers`.
+
+## Folders
+
+- `add_to_folder` (`gtm/folders.go`) finds a folder by exact name (capitals matter, outer spaces trimmed), creates it if missing, then moves tags/triggers/variables in with `move_entities_to_folder`. The create tools have no `parentFolderId` input on purpose: this one tool is the only way to assign folders. It is workspace-only and never publishes.
+- `get_folder_entities` does NOT call Google's `folders.entities` endpoint — it returns 404 for folders that exist. It lists the workspace's tags/triggers/variables and filters by `parentFolderId` instead. Don't "simplify" it back to the endpoint.
+- The `list_tags`/`get_tag` summaries still omit `parentFolderId` (triggers include it); use `get_folder_entities` to check folder membership.
