@@ -231,3 +231,17 @@ func TestGetFolderEntities_EmptyAndMissing(t *testing.T) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
+
+// An existing folder whose stored name has stray outer spaces still matches.
+func TestAddToFolder_MatchesStoredNameWithOuterSpaces(t *testing.T) {
+	f := newFake()
+	c := testClient(t, f)
+	f.folders = append(f.folders, &tagmanager.Folder{FolderId: "60", Name: " ZZZ Folder ", Path: testWS + "/folders/60"})
+	res, err := add(c, "ZZZ Folder", []string{"5"}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.FolderCreated || res.FolderID != "60" || f.createN != 0 {
+		t.Fatalf("expected reuse of folder 60, got %+v (creates=%d)", res, f.createN)
+	}
+}

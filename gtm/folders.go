@@ -147,7 +147,7 @@ func (c *Client) AddToFolder(ctx context.Context, accountID, containerID, worksp
 	}
 	var folder *tagmanager.Folder
 	for _, f := range existing {
-		if f.Name == name {
+		if strings.TrimSpace(f.Name) == name {
 			folder = f
 			break
 		}
