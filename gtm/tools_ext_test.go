@@ -91,16 +91,29 @@ func TestDestructiveToolsRequireConfirm(t *testing.T) {
 		return m
 	}
 	cases := map[string]map[string]any{
-		"delete_workspace":       ws,
-		"delete_folder":          with(ws, "folderId", "9"),
-		"delete_zone":            with(ws, "zoneId", "9"),
-		"delete_gtag_config":     with(ws, "gtagConfigId", "9"),
-		"delete_environment":     with(ct, "environmentId", "9"),
-		"delete_version":         with(ct, "versionId", "9"),
-		"set_latest_version":     with(ct, "versionId", "9"),
-		"move_tag_id":            with(ct, "tagId", "G-1"),
-		"combine_containers":     with(ct, "sourceContainerId", "5"),
-		"delete_user_permission": {"accountId": "1", "userPermissionId": "9"},
+		"delete_workspace":         ws,
+		"delete_folder":            with(ws, "folderId", "9"),
+		"delete_zone":              with(ws, "zoneId", "9"),
+		"delete_gtag_config":       with(ws, "gtagConfigId", "9"),
+		"delete_environment":       with(ct, "environmentId", "9"),
+		"delete_version":           with(ct, "versionId", "9"),
+		"set_latest_version":       with(ct, "versionId", "9"),
+		"move_tag_id":              with(ct, "tagId", "G-1"),
+		"combine_containers":       with(ct, "sourceContainerId", "5"),
+		"delete_user_permission":   {"accountId": "1", "userPermissionId": "9"},
+		"create_user_permission":   {"accountId": "1", "body": map[string]any{"emailAddress": "a@b.c"}},
+		"update_user_permission":   {"accountId": "1", "userPermissionId": "9", "body": map[string]any{"accountAccess": map[string]any{"permission": "user"}}},
+		"reauthorize_environment":  with(ct, "environmentId", "9"),
+		"link_destination":         with(ct, "destinationId", "G-1"),
+		"revert_tag":               with(ws, "tagId", "9"),
+		"revert_trigger":           with(ws, "triggerId", "9"),
+		"revert_variable":          with(ws, "variableId", "9"),
+		"revert_template":          with(ws, "templateId", "9"),
+		"revert_client":            with(ws, "clientId", "9"),
+		"revert_transformation":    with(ws, "transformationId", "9"),
+		"revert_built_in_variable": with(ws, "type", "pageUrl"),
+		"revert_folder":            with(ws, "folderId", "9"),
+		"revert_zone":              with(ws, "zoneId", "9"),
 	}
 	for name, args := range cases {
 		// Omitting confirm is rejected by the input schema before the handler runs.
@@ -145,5 +158,29 @@ func TestFromBodyRejectsUnknownFields(t *testing.T) {
 	}
 	if err := fromBody(nil, &dst); err == nil {
 		t.Error("empty body should be rejected")
+	}
+}
+
+func TestIDValidation(t *testing.T) {
+	good := []string{"123", "GTM-ABC123", "a_b-c"}
+	bad := []string{"", "1/2", "..", "1/../2", "a b", "1?x=2", "1#2", "a\nb", " 1"}
+	for _, g := range good {
+		if err := needID("id", g); err != nil {
+			t.Errorf("%q should be valid: %v", g, err)
+		}
+	}
+	for _, b := range bad {
+		if err := needID("id", b); err == nil {
+			t.Errorf("%q should be rejected", b)
+		}
+	}
+	if _, err := wsPath("1", "2/workspaces/9", "3"); err == nil {
+		t.Error("wsPath must reject a containerId containing '/'")
+	}
+	if _, err := ctPath("1", ".."); err == nil {
+		t.Error("ctPath must reject '..'")
+	}
+	if p, err := wsPath("1", "2", "3"); err != nil || p != "accounts/1/containers/2/workspaces/3" {
+		t.Errorf("valid wsPath broke: %q %v", p, err)
 	}
 }

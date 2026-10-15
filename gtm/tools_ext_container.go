@@ -22,12 +22,14 @@ type UserPermissionIDInput struct {
 type UserPermissionBodyInput struct {
 	AccountID string         `json:"accountId" jsonschema:"description:The GTM account ID"`
 	Body      map[string]any `json:"body" jsonschema:"description:UserPermission as JSON: emailAddress, accountAccess {permission: noAccess|user|admin}, containerAccess [{containerId, permission: noAccess|read|edit|approve|publish}]"`
+	Confirm   bool           `json:"confirm" jsonschema:"description:Must be true to confirm. Grants access immediately."`
 }
 
 type UpdateUserPermissionInput struct {
 	AccountID        string         `json:"accountId" jsonschema:"description:The GTM account ID"`
 	UserPermissionID string         `json:"userPermissionId" jsonschema:"description:The user permission ID, from list_user_permissions"`
 	Body             map[string]any `json:"body" jsonschema:"description:Fields to change: accountAccess and/or containerAccess. containerAccess REPLACES the user's container list, so send the full list"`
+	Confirm          bool           `json:"confirm" jsonschema:"description:Must be true to confirm. Changes access immediately."`
 }
 
 type DeleteUserPermissionInput struct {
@@ -41,7 +43,7 @@ func registerAccountsExt(server *mcp.Server) {
 
 	registerExt(server, "get_account", "Get one GTM account's details.",
 		func(ctx context.Context, in AccountRef) (*Result, error) {
-			if err := need("accountId", in.AccountID); err != nil {
+			if err := needID("accountId", in.AccountID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -59,7 +61,7 @@ func registerAccountsExt(server *mcp.Server) {
 
 	registerExt(server, "list_user_permissions", "List who has access to a GTM account and to which containers, with their permission levels (account: noAccess/user/admin; container: noAccess/read/edit/approve/publish)."+scopeNote,
 		func(ctx context.Context, in AccountRef) (*Result, error) {
-			if err := need("accountId", in.AccountID); err != nil {
+			if err := needID("accountId", in.AccountID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -82,7 +84,7 @@ func registerAccountsExt(server *mcp.Server) {
 
 	registerExt(server, "get_user_permission", "Get one user's permissions on an account."+scopeNote,
 		func(ctx context.Context, in UserPermissionIDInput) (*Result, error) {
-			if err := need("accountId", in.AccountID, "userPermissionId", in.UserPermissionID); err != nil {
+			if err := needID("accountId", in.AccountID, "userPermissionId", in.UserPermissionID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -100,7 +102,10 @@ func registerAccountsExt(server *mcp.Server) {
 
 	registerExt(server, "create_user_permission", "Grant a user access to a GTM account and/or containers. The user must have a Google account."+scopeNote,
 		func(ctx context.Context, in UserPermissionBodyInput) (*Result, error) {
-			if err := need("accountId", in.AccountID); err != nil {
+			if err := needConfirm(in.Confirm, "create_user_permission"); err != nil {
+				return nil, err
+			}
+			if err := needID("accountId", in.AccountID); err != nil {
 				return nil, err
 			}
 			var u tagmanager.UserPermission
@@ -123,7 +128,10 @@ func registerAccountsExt(server *mcp.Server) {
 
 	registerExt(server, "update_user_permission", "Change a user's account or container permissions. containerAccess replaces the existing container list."+scopeNote,
 		func(ctx context.Context, in UpdateUserPermissionInput) (*Result, error) {
-			if err := need("accountId", in.AccountID, "userPermissionId", in.UserPermissionID); err != nil {
+			if err := needConfirm(in.Confirm, "update_user_permission"); err != nil {
+				return nil, err
+			}
+			if err := needID("accountId", in.AccountID, "userPermissionId", in.UserPermissionID); err != nil {
 				return nil, err
 			}
 			var change tagmanager.UserPermission
@@ -159,7 +167,7 @@ func registerAccountsExt(server *mcp.Server) {
 			if err := needConfirm(in.Confirm, "delete_user_permission"); err != nil {
 				return nil, err
 			}
-			if err := need("accountId", in.AccountID, "userPermissionId", in.UserPermissionID); err != nil {
+			if err := needID("accountId", in.AccountID, "userPermissionId", in.UserPermissionID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -185,21 +193,21 @@ type ContainerSnippetInput struct {
 
 type MoveTagIDInput struct {
 	ContainerRef
-	TagID                           string `json:"tagId" jsonschema:"description:The tag ID (for example a G- or AW- ID) to move out of this container"`
-	TagName                         string `json:"tagName,omitempty" jsonschema:"description:Name for the new tag in the destination (optional)"`
-	CopySettings                    bool   `json:"copySettings,omitempty" jsonschema:"description:Copy the tag settings along"`
-	CopyUsers                       bool   `json:"copyUsers,omitempty" jsonschema:"description:Copy user permissions along"`
-	CopyTermsOfService              bool   `json:"copyTermsOfService,omitempty" jsonschema:"description:Copy the accepted terms of service"`
-	AllowUserPermissionFeatureUpdate bool  `json:"allowUserPermissionFeatureUpdate,omitempty" jsonschema:"description:Allow user permission feature updates"`
-	Confirm                         bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Moves a Google tag ID out of the container."`
+	TagID                            string `json:"tagId" jsonschema:"description:The tag ID (for example a G- or AW- ID) to move out of this container"`
+	TagName                          string `json:"tagName,omitempty" jsonschema:"description:Name for the new tag in the destination (optional)"`
+	CopySettings                     bool   `json:"copySettings,omitempty" jsonschema:"description:Copy the tag settings along"`
+	CopyUsers                        bool   `json:"copyUsers,omitempty" jsonschema:"description:Copy user permissions along"`
+	CopyTermsOfService               bool   `json:"copyTermsOfService,omitempty" jsonschema:"description:Copy the accepted terms of service"`
+	AllowUserPermissionFeatureUpdate bool   `json:"allowUserPermissionFeatureUpdate,omitempty" jsonschema:"description:Allow user permission feature updates"`
+	Confirm                          bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Moves a Google tag ID out of the container."`
 }
 
 type CombineContainersInput struct {
 	ContainerRef
-	SourceContainerID string `json:"sourceContainerId" jsonschema:"description:The container to merge INTO this one (the source is combined into the target)"`
-	SettingSource     string `json:"settingSource,omitempty" jsonschema:"description:Which container's settings win: OK, CURRENT or BACKUP"`
-	AllowUserPermissionFeatureUpdate bool `json:"allowUserPermissionFeatureUpdate,omitempty" jsonschema:"description:Allow user permission feature updates"`
-	Confirm           bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Merging containers is hard to undo."`
+	SourceContainerID                string `json:"sourceContainerId" jsonschema:"description:The container to merge INTO this one (the source is combined into the target)"`
+	SettingSource                    string `json:"settingSource,omitempty" jsonschema:"description:Which container's settings win: OK, CURRENT or BACKUP"`
+	AllowUserPermissionFeatureUpdate bool   `json:"allowUserPermissionFeatureUpdate,omitempty" jsonschema:"description:Allow user permission feature updates"`
+	Confirm                          bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Merging containers is hard to undo."`
 }
 
 type DestinationIDInput struct {
@@ -211,6 +219,7 @@ type LinkDestinationInput struct {
 	ContainerRef
 	DestinationID                    string `json:"destinationId" jsonschema:"description:The destination ID to link (for example a G- or AW- ID)"`
 	AllowUserPermissionFeatureUpdate bool   `json:"allowUserPermissionFeatureUpdate,omitempty" jsonschema:"description:Allow user permission feature updates"`
+	Confirm                          bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Changes the container configuration."`
 }
 
 func registerContainersExt(server *mcp.Server) {
@@ -235,7 +244,7 @@ func registerContainersExt(server *mcp.Server) {
 
 	registerExt(server, "lookup_container", "Find a container by its public ID (GTM-XXXXXXX) without knowing the account. Returns the account and container IDs.",
 		func(ctx context.Context, in LookupContainerInput) (*Result, error) {
-			if err := need("destinationId", in.DestinationID); err != nil {
+			if err := needID("destinationId", in.DestinationID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -279,7 +288,7 @@ func registerContainersExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("tagId", in.TagID); err != nil {
+			if err := needID("tagId", in.TagID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -308,7 +317,7 @@ func registerContainersExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("sourceContainerId", in.SourceContainerID); err != nil {
+			if err := needID("sourceContainerId", in.SourceContainerID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -352,7 +361,7 @@ func registerContainersExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("destinationLinkId", in.DestinationLinkID); err != nil {
+			if err := needID("destinationLinkId", in.DestinationLinkID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -370,11 +379,14 @@ func registerContainersExt(server *mcp.Server) {
 
 	registerExt(server, "link_destination", "Link a destination (a Google tag ID such as G-XXXX or AW-XXXX) to a container.",
 		func(ctx context.Context, in LinkDestinationInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "link_destination"); err != nil {
+				return nil, err
+			}
 			p, err := ctPath(in.AccountID, in.ContainerID)
 			if err != nil {
 				return nil, err
 			}
-			if err := need("destinationId", in.DestinationID); err != nil {
+			if err := needID("destinationId", in.DestinationID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -414,6 +426,12 @@ type DeleteEnvironmentInput struct {
 	Confirm       bool   `json:"confirm" jsonschema:"description:Must be true to confirm deletion"`
 }
 
+type ReauthorizeEnvironmentInput struct {
+	ContainerRef
+	EnvironmentID string `json:"environmentId" jsonschema:"description:The environment ID"`
+	Confirm       bool   `json:"confirm" jsonschema:"description:Must be true to confirm. The old authorization code stops working."`
+}
+
 func envPath(container, id string) string { return container + "/environments/" + id }
 
 func registerEnvironmentsExt(server *mcp.Server) {
@@ -447,7 +465,7 @@ func registerEnvironmentsExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("environmentId", in.EnvironmentID); err != nil {
+			if err := needID("environmentId", in.EnvironmentID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -490,7 +508,7 @@ func registerEnvironmentsExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("environmentId", in.EnvironmentID); err != nil {
+			if err := needID("environmentId", in.EnvironmentID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -531,7 +549,7 @@ func registerEnvironmentsExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("environmentId", in.EnvironmentID); err != nil {
+			if err := needID("environmentId", in.EnvironmentID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -545,12 +563,15 @@ func registerEnvironmentsExt(server *mcp.Server) {
 		})
 
 	registerExt(server, "reauthorize_environment", "Regenerate an environment's authorization code. The old code stops working.",
-		func(ctx context.Context, in EnvironmentIDInput) (*Result, error) {
+		func(ctx context.Context, in ReauthorizeEnvironmentInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "reauthorize_environment"); err != nil {
+				return nil, err
+			}
 			p, err := ctPath(in.AccountID, in.ContainerID)
 			if err != nil {
 				return nil, err
 			}
-			if err := need("environmentId", in.EnvironmentID); err != nil {
+			if err := needID("environmentId", in.EnvironmentID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -605,7 +626,7 @@ func registerVersionsExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("versionId", in.VersionID); err != nil {
+			if err := needID("versionId", in.VersionID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -689,7 +710,7 @@ func registerVersionsExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("versionId", in.VersionID); err != nil {
+			if err := needID("versionId", in.VersionID); err != nil {
 				return nil, err
 			}
 			if in.Name == "" && in.Description == "" {
@@ -728,7 +749,7 @@ func registerVersionsExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("versionId", in.VersionID); err != nil {
+			if err := needID("versionId", in.VersionID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -747,7 +768,7 @@ func registerVersionsExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("versionId", in.VersionID); err != nil {
+			if err := needID("versionId", in.VersionID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -770,7 +791,7 @@ func registerVersionsExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("versionId", in.VersionID); err != nil {
+			if err := needID("versionId", in.VersionID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)

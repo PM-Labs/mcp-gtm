@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	tagmanager "google.golang.org/api/tagmanager/v2"
@@ -98,6 +99,25 @@ func need(pairs ...string) error {
 	return nil
 }
 
+// idPattern is what a Tag Manager ID may contain. IDs are numeric, but accepting letters,
+// digits, underscore and hyphen keeps container public IDs and template IDs working while
+// rejecting '/', '..', '?', '#' and whitespace, which would let a value steer a request
+// at a different resource path.
+var idPattern = regexp.MustCompile(`^[0-9A-Za-z_-]+$`)
+
+// needID is need for path-building IDs: each must be present and match idPattern.
+func needID(pairs ...string) error {
+	for i := 0; i+1 < len(pairs); i += 2 {
+		if pairs[i+1] == "" {
+			return fmt.Errorf("%s is required", pairs[i])
+		}
+		if !idPattern.MatchString(pairs[i+1]) {
+			return fmt.Errorf("%s %q is not a valid ID (letters, digits, '_' and '-' only)", pairs[i], pairs[i+1])
+		}
+	}
+	return nil
+}
+
 // needConfirm is the safety guard for destructive or live-affecting tools.
 func needConfirm(confirm bool, action string) error {
 	if !confirm {
@@ -121,12 +141,18 @@ func wsPath(account, container, workspace string) (string, error) {
 	if err := ValidateWorkspacePath(account, container, workspace); err != nil {
 		return "", err
 	}
+	if err := needID("accountId", account, "containerId", container, "workspaceId", workspace); err != nil {
+		return "", err
+	}
 	return BuildWorkspacePath(account, container, workspace), nil
 }
 
 // ctPath validates container IDs and returns the container path.
 func ctPath(account, container string) (string, error) {
 	if err := ValidateContainerPath(account, container); err != nil {
+		return "", err
+	}
+	if err := needID("accountId", account, "containerId", container); err != nil {
 		return "", err
 	}
 	return BuildContainerPath(account, container), nil

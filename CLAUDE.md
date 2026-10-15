@@ -43,7 +43,8 @@ Brings the server to full Tag Manager API v2 coverage (about 110 tools). Built w
 
 Rules for these tools:
 
-- Anything destructive or live-affecting takes `confirm: true` (a required field, so the schema rejects the call if it is omitted).
+- Anything destructive or live-affecting takes `confirm: true` (a required field, so the schema rejects the call if it is omitted): deletes, `move_tag_id`, `combine_containers`, `set_latest_version`, `reauthorize_environment`, `link_destination`, every `revert_*`, and `create_user_permission` / `update_user_permission` / `delete_user_permission`.
+- Every ID that is spliced into an API path (`accountId`, `folderId`, `userPermissionId` and so on) must match `^[0-9A-Za-z_-]+$` (`needID`, and `wsPath` / `ctPath`), so a value like `1/../2` cannot redirect a call to another resource. Use `needID`, not `need`, for any new ID field.
 - Body-style tools (zones, gtag configs, environments, user permissions) reject unknown fields, so a misspelt property fails loudly. `update_*` tools merge the supplied fields over the current object.
 - `update_user_permission` replaces `containerAccess` wholesale: send the user's full container list.
 

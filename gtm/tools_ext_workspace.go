@@ -177,9 +177,10 @@ type CreateFolderInput struct {
 	Notes string `json:"notes,omitempty" jsonschema:"description:Folder notes (optional)"`
 }
 
-type FolderIDInput struct {
+type RevertFolderInput struct {
 	WorkspaceRef
 	FolderID string `json:"folderId" jsonschema:"description:The folder ID"`
+	Confirm  bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
 }
 
 type UpdateFolderInput struct {
@@ -224,7 +225,7 @@ func registerFoldersExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("folderId", in.FolderID); err != nil {
+			if err := needID("folderId", in.FolderID); err != nil {
 				return nil, err
 			}
 			if in.Name == "" && in.Notes == "" {
@@ -263,7 +264,7 @@ func registerFoldersExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("folderId", in.FolderID); err != nil {
+			if err := needID("folderId", in.FolderID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -277,12 +278,15 @@ func registerFoldersExt(server *mcp.Server) {
 		})
 
 	registerExt(server, "revert_folder", "Revert a folder's workspace changes back to the last saved version.",
-		func(ctx context.Context, in FolderIDInput) (*Result, error) {
+		func(ctx context.Context, in RevertFolderInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "revert_folder"); err != nil {
+				return nil, err
+			}
 			p, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID)
 			if err != nil {
 				return nil, err
 			}
-			if err := need("folderId", in.FolderID); err != nil {
+			if err := needID("folderId", in.FolderID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -321,6 +325,12 @@ type DeleteZoneInput struct {
 	Confirm bool   `json:"confirm" jsonschema:"description:Must be true to confirm deletion"`
 }
 
+type RevertZoneInput struct {
+	WorkspaceRef
+	ZoneID  string `json:"zoneId" jsonschema:"description:The zone ID"`
+	Confirm bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
+}
+
 func zonePath(ws, id string) string { return ws + "/zones/" + id }
 
 func registerZonesExt(server *mcp.Server) {
@@ -354,7 +364,7 @@ func registerZonesExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("zoneId", in.ZoneID); err != nil {
+			if err := needID("zoneId", in.ZoneID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -397,7 +407,7 @@ func registerZonesExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("zoneId", in.ZoneID); err != nil {
+			if err := needID("zoneId", in.ZoneID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -438,7 +448,7 @@ func registerZonesExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("zoneId", in.ZoneID); err != nil {
+			if err := needID("zoneId", in.ZoneID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -452,12 +462,15 @@ func registerZonesExt(server *mcp.Server) {
 		})
 
 	registerExt(server, "revert_zone", "Revert a zone's workspace changes back to the last saved version.",
-		func(ctx context.Context, in ZoneIDInput) (*Result, error) {
+		func(ctx context.Context, in RevertZoneInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "revert_zone"); err != nil {
+				return nil, err
+			}
 			p, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID)
 			if err != nil {
 				return nil, err
 			}
-			if err := need("zoneId", in.ZoneID); err != nil {
+			if err := needID("zoneId", in.ZoneID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -529,7 +542,7 @@ func registerGtagConfigExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("gtagConfigId", in.GtagConfigID); err != nil {
+			if err := needID("gtagConfigId", in.GtagConfigID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -572,7 +585,7 @@ func registerGtagConfigExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("gtagConfigId", in.GtagConfigID); err != nil {
+			if err := needID("gtagConfigId", in.GtagConfigID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -613,7 +626,7 @@ func registerGtagConfigExt(server *mcp.Server) {
 			if err != nil {
 				return nil, err
 			}
-			if err := need("gtagConfigId", in.GtagConfigID); err != nil {
+			if err := needID("gtagConfigId", in.GtagConfigID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -635,35 +648,42 @@ type RevertTagInput struct {
 	WorkspaceRef
 	TagID       string `json:"tagId" jsonschema:"description:The tag ID"`
 	Fingerprint string `json:"fingerprint,omitempty" jsonschema:"description:Fingerprint of the entity version to revert (optional)"`
+	Confirm     bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
 }
 type RevertTriggerInput struct {
 	WorkspaceRef
 	TriggerID   string `json:"triggerId" jsonschema:"description:The trigger ID"`
 	Fingerprint string `json:"fingerprint,omitempty" jsonschema:"description:Fingerprint of the entity version to revert (optional)"`
+	Confirm     bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
 }
 type RevertVariableInput struct {
 	WorkspaceRef
 	VariableID  string `json:"variableId" jsonschema:"description:The variable ID"`
 	Fingerprint string `json:"fingerprint,omitempty" jsonschema:"description:Fingerprint of the entity version to revert (optional)"`
+	Confirm     bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
 }
 type RevertTemplateInput struct {
 	WorkspaceRef
 	TemplateID  string `json:"templateId" jsonschema:"description:The custom template ID"`
 	Fingerprint string `json:"fingerprint,omitempty" jsonschema:"description:Fingerprint of the entity version to revert (optional)"`
+	Confirm     bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
 }
 type RevertClientInput struct {
 	WorkspaceRef
 	ClientID    string `json:"clientId" jsonschema:"description:The client ID (server-side containers)"`
 	Fingerprint string `json:"fingerprint,omitempty" jsonschema:"description:Fingerprint of the entity version to revert (optional)"`
+	Confirm     bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
 }
 type RevertTransformationInput struct {
 	WorkspaceRef
 	TransformationID string `json:"transformationId" jsonschema:"description:The transformation ID (server-side containers)"`
 	Fingerprint      string `json:"fingerprint,omitempty" jsonschema:"description:Fingerprint of the entity version to revert (optional)"`
+	Confirm          bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
 }
 type RevertBuiltInVariableInput struct {
 	WorkspaceRef
-	Type string `json:"type" jsonschema:"description:Built-in variable type, for example pageUrl or clickElement"`
+	Type    string `json:"type" jsonschema:"description:Built-in variable type, for example pageUrl or clickElement"`
+	Confirm bool   `json:"confirm" jsonschema:"description:Must be true to confirm. Discards the workspace changes to it."`
 }
 
 func registerRevertsExt(server *mcp.Server) {
@@ -671,11 +691,14 @@ func registerRevertsExt(server *mcp.Server) {
 
 	registerExt(server, "revert_tag", "Revert a tag."+note,
 		func(ctx context.Context, in RevertTagInput) (*Result, error) {
-			p, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID)
+			if err := needConfirm(in.Confirm, "revert_tag"); err != nil {
+				return nil, err
+			}
+			_, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID)
 			if err != nil {
 				return nil, err
 			}
-			if err := need("tagId", in.TagID); err != nil {
+			if err := needID("tagId", in.TagID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -686,7 +709,6 @@ func registerRevertsExt(server *mcp.Server) {
 			if in.Fingerprint != "" {
 				call = call.Fingerprint(in.Fingerprint)
 			}
-			_ = p
 			r, err := call.Do()
 			if err != nil {
 				return nil, mapGoogleError(err)
@@ -696,10 +718,13 @@ func registerRevertsExt(server *mcp.Server) {
 
 	registerExt(server, "revert_trigger", "Revert a trigger."+note,
 		func(ctx context.Context, in RevertTriggerInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "revert_trigger"); err != nil {
+				return nil, err
+			}
 			if _, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID); err != nil {
 				return nil, err
 			}
-			if err := need("triggerId", in.TriggerID); err != nil {
+			if err := needID("triggerId", in.TriggerID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -719,10 +744,13 @@ func registerRevertsExt(server *mcp.Server) {
 
 	registerExt(server, "revert_variable", "Revert a variable."+note,
 		func(ctx context.Context, in RevertVariableInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "revert_variable"); err != nil {
+				return nil, err
+			}
 			if _, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID); err != nil {
 				return nil, err
 			}
-			if err := need("variableId", in.VariableID); err != nil {
+			if err := needID("variableId", in.VariableID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -742,11 +770,14 @@ func registerRevertsExt(server *mcp.Server) {
 
 	registerExt(server, "revert_template", "Revert a custom template."+note,
 		func(ctx context.Context, in RevertTemplateInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "revert_template"); err != nil {
+				return nil, err
+			}
 			p, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID)
 			if err != nil {
 				return nil, err
 			}
-			if err := need("templateId", in.TemplateID); err != nil {
+			if err := needID("templateId", in.TemplateID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -766,10 +797,13 @@ func registerRevertsExt(server *mcp.Server) {
 
 	registerExt(server, "revert_client", "Revert a client (server-side containers)."+note,
 		func(ctx context.Context, in RevertClientInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "revert_client"); err != nil {
+				return nil, err
+			}
 			if _, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID); err != nil {
 				return nil, err
 			}
-			if err := need("clientId", in.ClientID); err != nil {
+			if err := needID("clientId", in.ClientID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -789,10 +823,13 @@ func registerRevertsExt(server *mcp.Server) {
 
 	registerExt(server, "revert_transformation", "Revert a transformation (server-side containers)."+note,
 		func(ctx context.Context, in RevertTransformationInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "revert_transformation"); err != nil {
+				return nil, err
+			}
 			if _, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID); err != nil {
 				return nil, err
 			}
-			if err := need("transformationId", in.TransformationID); err != nil {
+			if err := needID("transformationId", in.TransformationID); err != nil {
 				return nil, err
 			}
 			s, err := svc(ctx)
@@ -812,6 +849,9 @@ func registerRevertsExt(server *mcp.Server) {
 
 	registerExt(server, "revert_built_in_variable", "Revert a built-in variable to its last saved enabled/disabled state.",
 		func(ctx context.Context, in RevertBuiltInVariableInput) (*Result, error) {
+			if err := needConfirm(in.Confirm, "revert_built_in_variable"); err != nil {
+				return nil, err
+			}
 			p, err := wsPath(in.AccountID, in.ContainerID, in.WorkspaceID)
 			if err != nil {
 				return nil, err
