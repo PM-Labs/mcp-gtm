@@ -52,7 +52,7 @@ func testServiceAccountJSON(t *testing.T) []byte {
 }
 
 func TestNewServiceAccountTokenSource_InvalidJSON(t *testing.T) {
-	_, err := NewServiceAccountTokenSource(context.Background(), "not-valid-json")
+	_, err := NewServiceAccountTokenSource(context.Background(), "not-valid-json", "")
 	if err == nil {
 		t.Fatal("expected error for invalid JSON key")
 	}
@@ -60,7 +60,7 @@ func TestNewServiceAccountTokenSource_InvalidJSON(t *testing.T) {
 
 func TestNewServiceAccountTokenSource_ValidKey(t *testing.T) {
 	keyJSON := testServiceAccountJSON(t)
-	ts, err := NewServiceAccountTokenSource(context.Background(), string(keyJSON))
+	ts, err := NewServiceAccountTokenSource(context.Background(), string(keyJSON), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 	"sync"
 
 	"golang.org/x/oauth2"
@@ -21,6 +23,52 @@ var GoogleScopes = []string{
 	"https://www.googleapis.com/auth/tagmanager.manage.accounts",
 	"https://www.googleapis.com/auth/tagmanager.readonly",
 	"https://www.googleapis.com/auth/tagmanager.publish",
+}
+
+// extraScopeShortNames maps short names to the GTM scopes that are not requested by default.
+// They are opt-in because, under Domain-Wide Delegation, requesting a scope that Workspace Admin
+// has not authorised makes EVERY token mint fail (unauthorized_client), not just the calls that need it.
+var extraScopeShortNames = map[string]string{
+	"manage.users":           "https://www.googleapis.com/auth/tagmanager.manage.users",
+	"delete.containers":      "https://www.googleapis.com/auth/tagmanager.delete.containers",
+	"edit.containerversions": "https://www.googleapis.com/auth/tagmanager.edit.containerversions",
+}
+
+func init() {
+	// GTM_EXTRA_SCOPES: comma-separated short names (manage.users, delete.containers,
+	// edit.containerversions) or full scope URLs. Set it only after the same scopes are
+	// authorised for the service account in Workspace Admin > Security > API controls >
+	// Domain-wide delegation.
+	GoogleScopes = withExtraScopes(GoogleScopes, os.Getenv("GTM_EXTRA_SCOPES"))
+}
+
+// withExtraScopes returns base plus any valid, not-yet-present scopes named in raw.
+// Anything that is not a Tag Manager scope is ignored.
+func withExtraScopes(base []string, raw string) []string {
+	out := append([]string(nil), base...)
+	for _, s := range strings.Split(raw, ",") {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		if full, found := extraScopeShortNames[s]; found {
+			s = full
+		}
+		if !strings.HasPrefix(s, "https://www.googleapis.com/auth/tagmanager.") {
+			continue
+		}
+		dup := false
+		for _, have := range out {
+			if have == s {
+				dup = true
+				break
+			}
+		}
+		if !dup {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // NewGoogleProvider creates a new Google OAuth provider.

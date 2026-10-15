@@ -80,6 +80,17 @@ func RegisterTools(server *mcp.Server) {
 	registerGetTagTemplates(server)
 	registerGetTriggerTemplates(server)
 
+	// Extended coverage of the Tag Manager API v2 (tools_ext_*.go)
+	registerWorkspaceExt(server)
+	registerFoldersExt(server)
+	registerZonesExt(server)
+	registerGtagConfigExt(server)
+	registerRevertsExt(server)
+	registerAccountsExt(server)
+	registerContainersExt(server)
+	registerEnvironmentsExt(server)
+	registerVersionsExt(server)
+
 	// Resources (URI-based read access)
 	RegisterResources(server)
 
