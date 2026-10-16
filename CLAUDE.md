@@ -56,4 +56,4 @@ The default scope list is unchanged. Three scopes the new tools need are opt-in 
 
 ### Tests
 
-No Go toolchain is installed on the Windows machines. Use a portable Go (zip from go.dev) or build on the droplet. `go test ./gtm/` covers tool registration, schema flattening and the confirm guards. `go test ./auth/` has three known failures in the OAuth metadata endpoint tests (`/token` vs `/oauth/token`), left over from the upstream fork and unrelated to scopes.
+No Go toolchain is installed on the Windows machines. Use a portable Go (zip from go.dev) or build on the droplet. `go test ./gtm/` covers tool registration, schema flattening and the confirm guards. `go test ./auth/` passes: the OAuth metadata and the 401 response both advertise `/oauth/token`, the only token route the server serves. After a redeploy run `node scripts/test-session-persistence.js <base-url> <bearer-token>` (an unknown session id must return 404).

@@ -30,10 +30,10 @@ func TestMetadataHandler_StaticBaseURL(t *testing.T) {
 	if meta.AuthorizationEndpoint != "https://mcp.gtmeditor.com/authorize" {
 		t.Errorf("authorization_endpoint = %q", meta.AuthorizationEndpoint)
 	}
-	if meta.TokenEndpoint != "https://mcp.gtmeditor.com/token" {
+	if meta.TokenEndpoint != "https://mcp.gtmeditor.com/oauth/token" {
 		t.Errorf("token_endpoint = %q", meta.TokenEndpoint)
 	}
-	if meta.RegistrationEndpoint != "https://mcp.gtmeditor.com/register" {
+	if meta.RegistrationEndpoint != "" { // omitted since e291bfa: no dynamic registration advertised
 		t.Errorf("registration_endpoint = %q", meta.RegistrationEndpoint)
 	}
 }

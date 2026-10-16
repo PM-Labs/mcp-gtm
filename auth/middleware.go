@@ -247,7 +247,7 @@ func unauthorized(w http.ResponseWriter, baseURL, message string) {
 		"error":                  "unauthorized",
 		"error_description":      message,
 		"authorization_endpoint": baseURL + "/authorize",
-		"token_endpoint":         baseURL + "/token",
+		"token_endpoint":         baseURL + "/oauth/token",
 	}
 	json.NewEncoder(w).Encode(resp)
 }

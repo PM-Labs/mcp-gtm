@@ -170,7 +170,7 @@ func TestMiddleware_MissingAuthHeader(t *testing.T) {
 	if resp["authorization_endpoint"] != "http://localhost:8080/authorize" {
 		t.Errorf("expected authorization_endpoint, got %q", resp["authorization_endpoint"])
 	}
-	if resp["token_endpoint"] != "http://localhost:8080/token" {
+	if resp["token_endpoint"] != "http://localhost:8080/oauth/token" {
 		t.Errorf("expected token_endpoint, got %q", resp["token_endpoint"])
 	}
 }
@@ -403,7 +403,7 @@ func TestUnauthorized_IncludesEndpoints(t *testing.T) {
 	if resp["authorization_endpoint"] != "https://mcp.example.com/authorize" {
 		t.Errorf("expected authorization_endpoint, got %q", resp["authorization_endpoint"])
 	}
-	if resp["token_endpoint"] != "https://mcp.example.com/token" {
+	if resp["token_endpoint"] != "https://mcp.example.com/oauth/token" {
 		t.Errorf("expected token_endpoint, got %q", resp["token_endpoint"])
 	}
 }
